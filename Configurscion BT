@@ -1,0 +1,35 @@
+//Codigo para configurar el modelo bluetooth, solo se realiza una vez
+#include <SoftwareSerial.h>
+SoftwareSerial Serial1(10, 11); // RX, TX
+void setup() {
+  Serial.begin(9600);
+  Serial1.begin(38400);
+  Serial.println("Dispositivo listo para recibir comando AT");
+}
+
+void loop() {
+ 
+  if(Serial.available())
+    Serial1.write(Serial.read());
+  if(Serial1.available())
+    Serial.write(Serial1.read());
+}
+/* Se introduce esto en el monitor serial:
+ Bluetooth Esclavo AT 
+AT+NAME=BTEsclavoTostatronic 
+AT+PSWD=0000 
+AT+UART=9600,0,0 
+AT+ROLE=0 (Para 0 significa Esclavo y 1 Significa Maestro) 
+AT+CMODE=1 (el 1 le permite conectarse con cualquier MAC(Direccion Fisica) y 0 solo le permite conectarse con una MAC en particular) 
+AT+ADDR (Sentencia para extraer la direccion MAC de este bluetooth)
+MAC:2016,5,310042 
+Bluetooth Maestro 
+AT 
+AT+NAME=BTMaestroTostatronic 
+AT+PSWD=0000 
+AT+UART=9600,0,0 
+AT+ROLE=1 (Para 0 significa Esclavo y 1 Significa Maestro) 
+AT+CMODE=0 (el 1 le permite conectarse con cualquier MAC(Direccion Fisica) y 0 solo le permite conectarse con una MAC en particular) 
+AT+BIND= //Aqui se pone la mac del dispositivo esclavo no cambiar los ":" por ","*/
+
+
