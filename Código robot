@@ -1,0 +1,291 @@
+#define CUSTOM_SETTINGS         //Para usar Dabble
+#define INCLUDE_GAMEPAD_MODULE  //Para usar Dabble
+#include <Dabble.h>             //incluimos la librería para el control Dabble
+#include <L298NX2.h>            //incluimos la librería
+
+#define enA 10  //definimos las variables del L298N con los pines correspondientes
+#define in1 9
+#define in2 8
+#define enB 5
+#define in3 7
+#define in4 6
+
+const int zumbadorPin = 11;  // Digital Pin 11 para el zumbador
+
+unsigned int x = 0;  //Inicializamos la variable x en 0
+unsigned int y = 0;  //Inicializamos la variable y en 0
+/*
+  cuando ponemos los mismos valores a los motores el A va un poco mas rapido,
+  por lo que creamos una variable para cada motor, que es el maximo para que vayan a la vez
+  durante todo e codigo nos referiremos a estas dos variables
+  */
+int motorA = 245;
+int motorB = 255;
+int velocidadA;
+int velocidadB;
+
+L298NX2 motors(enA, in1, in2, enB, in3, in4);  //pasamos los nombres de las variables para que la librería las use
+
+int a;  //definimos la variable a
+int r;  //definimos la variable r
+
+void setup() {
+
+  motors.setSpeedA(motorA);
+  motors.setSpeedB(motorB);
+
+  Dabble.begin(9600);            // Velocidad a la que está configurado el módulo Bluetooth
+  pinMode(zumbadorPin, OUTPUT);  // Pin del zumbador como salida
+}
+
+void beep(int note, int duration) {   //función de estado beep
+  tone(zumbadorPin, note, duration);  //tono definido con Pin, nota y duración
+  delay(duration);                    //espera
+  noTone(zumbadorPin);                //apaga el zumbador
+  delay(50);                          //espera
+}
+
+void sonido(int zumbador, float Frecuencia, long Duracion) {       //función de usuario sonido con variables pin, frecuencia y duración
+  float microsegundosPorOnda = 1000000 / Frecuencia;               //se define la variable ms/onda
+  float milisegundosPorCiclo = 1000 / (microsegundosPorOnda * 2);  //se define la variable ms/ciclo
+  float tiempoDeLoop = Duracion * milisegundosPorCiclo;            //se define el tiempo del loop
+  for (int x = 0; x < tiempoDeLoop; x++) {                         //bucle for de x al tiempo establecido
+    digitalWrite(zumbador, HIGH);                                  //se enciende el zumbador
+    delayMicroseconds(microsegundosPorOnda);                       //espera de ms/onda previamente establecido
+    digitalWrite(zumbador, LOW);                                   //se apaga el zumbador
+    delayMicroseconds(microsegundosPorOnda);                       //espera de ms/onda
+  }
+}
+
+void loop() {
+
+  Dabble.processInput();    //obtener los datos de la aplicación y guardar los que nos interesan de joystick en variables
+  a = GamePad.getAngle();   //a es el ángulo, con esto sabemos la dirección
+  r = GamePad.getRadius();  //r es el radio, para saber la velocidad que lleva
+
+  if (GamePad.isTrianglePressed()) {  //Si se pulsa el botón triángulo
+    const int f = 350;
+    const int gS = 400;
+    const int a = 450;
+    const int cH = 500;               //Acordes definidos por frecuencias
+    const int eH = 650;
+    const int fH = 700;
+
+    beep(a, 500);                     //Sonará parte de la BSO de Star Wars, Marcha imperial
+    beep(a, 500);
+    beep(a, 500);
+    beep(f, 350);
+    beep(cH, 150);
+    beep(a, 500);
+    beep(f, 350);
+    beep(cH, 150);
+    beep(a, 650);
+
+    delay(500);
+
+    beep(eH, 500);
+    beep(eH, 500);
+    beep(eH, 500);
+    beep(fH, 350);
+    beep(cH, 150);
+    beep(gS, 500);
+    beep(f, 350);
+    beep(cH, 150);
+    beep(a, 650);
+
+    delay(500);
+  }
+
+  if (GamePad.isCirclePressed()) {                //Si se presiona el botón círculo se creará el siguiente ruido
+    for (int i = 1000; i < 2000; i = i * 1.02) {  //Entre 1000 y 2000 se va multiplicando el valor de la frecuenica por 1.0   sonido(zumbadorPin, i, 10);
+    }
+    for (int i = 2000; i > 2000; i = i * 0.98) {  //tras el for anterior, se ejecuta de manera similar con distintas freciencias e índices
+      sonido(zumbadorPin, i, 10);
+    }
+    for (int i = 1000; i < 4000; i = i * 1.05) {
+      sonido(zumbadorPin, i, 10);
+    }
+    for (int i = 1000; i < 3000; i = i * 1.03) {
+      sonido(zumbadorPin, i, 10);
+    }
+    delay(700);
+    for (int i = 2000; i < 2500; i = i * 1.01) {
+      sonido(zumbadorPin, i, 10);
+    }
+    for (int i = 1000; i > 4000; i = i * 0.99) {
+      sonido(zumbadorPin, i, 10);
+    }
+  }
+
+  if (a == 0 && r == 0) {
+    motors.runA(L298N::STOP);  // parar los motores cuando el joystick esta en el centro
+    motors.runB(L298N::STOP);
+  } else {
+    switch (r) {  // distintas velocidades segun el raduio del joystick
+      case 0:
+      case 1:
+        velocidadA = 0;
+        velocidadB = 0;
+        break;
+      case 2:
+      case 3:
+        velocidadA = motorA / 2;
+        velocidadB = motorB / 2;
+        break;
+      case 4:
+      case 5:
+        velocidadA = 2 * motorA / 3;
+        velocidadB = 2 * motorB / 3;
+        break;
+      case 6:
+      case 7:
+        velocidadA = motorA;
+        velocidadB = motorB;
+        break;
+    }
+
+    switch (a) {  // direcciones segun el angulo
+      case 0:
+        motors.setSpeedA(velocidadA);
+        motors.setSpeedB(velocidadB);
+        motors.runB(L298N::BACKWARD);
+        motors.runA(L298N::FORWARD);
+        break;
+      case 15:
+        motors.setSpeedA(velocidadA);
+        motors.setSpeedB(velocidadB - 50);
+        motors.runB(L298N::BACKWARD);
+        motors.runA(L298N::FORWARD);
+        break;
+      case 30:
+        motors.setSpeedA(velocidadA);
+        motors.setSpeedB(velocidadB - 100);
+        motors.runB(L298N::BACKWARD);
+        motors.runA(L298N::FORWARD);
+        break;
+      case 45:
+        motors.run(L298N::FORWARD);
+        motors.setSpeedA(velocidadA);
+        motors.setSpeedB(velocidadB - 120);
+        break;
+      case 60:
+        motors.setSpeedA(velocidadA);
+        motors.setSpeedB(velocidadB - 100);
+        motors.runB(L298N::FORWARD);
+        motors.runA(L298N::FORWARD);
+        break;
+      case 75:
+        motors.setSpeedA(velocidadA);
+        motors.setSpeedB(velocidadB - 50);
+        motors.runB(L298N::FORWARD);
+        motors.runA(L298N::FORWARD);
+        break;
+      case 90:
+        motors.run(L298N::FORWARD);
+        motors.setSpeedA(velocidadA);
+        motors.setSpeedB(velocidadB);
+        break;
+      case 105:
+        motors.setSpeedA(velocidadA - 50);
+        motors.setSpeedB(velocidadB);
+        motors.runB(L298N::FORWARD);
+        motors.runA(L298N::FORWARD);
+        break;
+      case 120:
+        motors.setSpeedA(velocidadA - 100);
+        motors.setSpeedB(velocidadB);
+        motors.runB(L298N::FORWARD);
+        motors.runA(L298N::FORWARD);
+        break;
+      case 135:
+        motors.run(L298N::FORWARD);
+        motors.setSpeedA(velocidadA - 120);
+        motors.setSpeedB(velocidadB);
+        break;
+      case 150:
+        motors.setSpeedA(velocidadA - 100);
+        motors.setSpeedB(velocidadB);
+        motors.runB(L298N::FORWARD);
+        motors.runA(L298N::BACKWARD);
+        break;
+      case 165:
+        motors.setSpeedA(velocidadA - 50);
+        motors.setSpeedB(velocidadB);
+        motors.runB(L298N::FORWARD);
+        motors.runA(L298N::BACKWARD);
+        break;
+      case 180:
+        motors.setSpeedA(velocidadA);
+        motors.setSpeedB(velocidadB);
+        motors.runA(L298N::BACKWARD);
+        motors.runB(L298N::FORWARD);
+        break;
+      case 195:
+        motors.setSpeedA(velocidadA);
+        motors.setSpeedB(velocidadB - 50);
+        motors.runB(L298N::FORWARD);
+        motors.runA(L298N::BACKWARD);
+        break;
+      case 210:
+        motors.setSpeedA(velocidadA);
+        motors.setSpeedB(velocidadB - 100);
+        motors.runB(L298N::FORWARD);
+        motors.runA(L298N::BACKWARD);
+        break;
+      case 225:
+        motors.run(L298N::BACKWARD);
+        motors.setSpeedA(velocidadA);
+        motors.setSpeedB(velocidadB - 120);
+        break;
+      case 240:
+        motors.setSpeedA(velocidadA);
+        motors.setSpeedB(velocidadB - 100);
+        motors.run(L298N::BACKWARD);
+        break;
+
+      case 255:
+        motors.setSpeedA(velocidadA);
+        motors.setSpeedB(velocidadB - 50);
+        motors.run(L298N::BACKWARD);
+        break;
+
+      case 270:
+        motors.run(L298N::BACKWARD);
+        motors.setSpeedA(velocidadA);
+        motors.setSpeedB(velocidadB);
+        break;
+
+      case 285:
+        motors.setSpeedA(velocidadA - 50);
+        motors.setSpeedB(velocidadB);
+        motors.run(L298N::BACKWARD);
+        break;
+
+      case 300:
+        motors.setSpeedA(velocidadA - 100);
+        motors.setSpeedB(velocidadB);
+        motors.run(L298N::BACKWARD);
+        break;
+
+      case 315:
+        motors.run(L298N::BACKWARD);
+        motors.setSpeedA(velocidadA - 120);
+        motors.setSpeedB(velocidadA);
+        break;
+
+      case 330:
+        motors.setSpeedA(velocidadA - 100);
+        motors.setSpeedB(velocidadB);
+        motors.runB(L298N::BACKWARD);
+        motors.runA(L298N::FORWARD);
+        break;
+
+      case 345:
+        motors.setSpeedA(velocidadA - 50);
+        motors.setSpeedB(velocidadB);
+        motors.runB(L298N::BACKWARD);
+        motors.runA(L298N::FORWARD);
+        break;
+    }
+  }
+}
